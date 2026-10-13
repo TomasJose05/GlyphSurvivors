@@ -1,0 +1,12 @@
+/* The canvas fills the whole window; no scrollbars, no margins. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0d10;
+}
+
+canvas {
+  display: block;
+}
