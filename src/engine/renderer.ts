@@ -1,4 +1,5 @@
-import { COLORS, FONT, GROUND_CHAR } from '../config';
+import { COLORS, FONT } from '../config';
+import { glyphAt } from '../world/terrain';
 
 /**
  * Draws characters onto a full-window canvas.
@@ -52,14 +53,29 @@ export class Renderer {
     this.ctx.fillRect(0, 0, this.width, this.height);
   }
 
-  /** Fill the screen with a regular grid of ground characters. */
-  drawGroundGrid(): void {
-    const cols = Math.ceil(this.width / this.cellW);
-    const rows = Math.ceil(this.height / this.cellH);
-    this.ctx.fillStyle = COLORS.gridDot;
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        this.ctx.fillText(GROUND_CHAR, col * this.cellW, row * this.cellH);
+  /**
+   * Draw the terrain visible through the camera. (camX, camY) is the world position, in pixels,
+   * of the screen's top-left corner. Cells are looked up by world coordinates, so scrolling is free.
+   */
+  drawTerrain(camX: number, camY: number): void {
+    const firstCol = Math.floor(camX / this.cellW);
+    const firstRow = Math.floor(camY / this.cellH);
+    const cols = Math.ceil(this.width / this.cellW) + 1;
+    const rows = Math.ceil(this.height / this.cellH) + 1;
+
+    // Changing fillStyle is comparatively slow, so only do it when the color actually changes.
+    let lastColor = '';
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const col = firstCol + c;
+        const row = firstRow + r;
+        const glyph = glyphAt(col, row, col * this.cellW, row * this.cellH);
+        if (!glyph) continue;
+        if (glyph.color !== lastColor) {
+          this.ctx.fillStyle = glyph.color;
+          lastColor = glyph.color;
+        }
+        this.ctx.fillText(glyph.char, col * this.cellW - camX, row * this.cellH - camY);
       }
     }
   }
