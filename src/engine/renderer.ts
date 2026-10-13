@@ -1,5 +1,6 @@
-import { COLORS, FONT } from '../config';
-import { glyphAt } from '../world/terrain';
+import { COLORS, DECOR, FONT, GROUND_CHAR } from '../config';
+import { getBlock, type Decoration } from '../world/decorations';
+import { hash2 } from '../world/rng';
 
 /**
  * Draws characters onto a full-window canvas.
@@ -53,11 +54,12 @@ export class Renderer {
     this.ctx.fillRect(0, 0, this.width, this.height);
   }
 
+
   /**
-   * Draw the terrain visible through the camera. (camX, camY) is the world position, in pixels,
-   * of the screen's top-left corner. Cells are looked up by world coordinates, so scrolling is free.
+   * Draw the world visible through the camera. (camX, camY) is the world position, in pixels,
+   * of the screen's top-left corner. Everything is looked up by world coordinates, so scrolling is free.
    */
-  drawTerrain(camX: number, camY: number): void {
+  drawWorld(camX: number, camY: number): void {
     const firstCol = Math.floor(camX / this.cellW);
     const firstRow = Math.floor(camY / this.cellH);
     const cols = Math.ceil(this.width / this.cellW) + 1;
@@ -65,17 +67,41 @@ export class Renderer {
 
     // Changing fillStyle is comparatively slow, so only do it when the color actually changes.
     let lastColor = '';
+    const put = (char: string, color: string, col: number, row: number): void => {
+      if (color !== lastColor) {
+        this.ctx.fillStyle = color;
+        lastColor = color;
+      }
+      this.ctx.fillText(char, col * this.cellW - camX, row * this.cellH - camY);
+    };
+
+    // 1. Ground: a regular grid of dots, with a few slightly brighter ones scattered in.
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const col = firstCol + c;
         const row = firstRow + r;
-        const glyph = glyphAt(col, row, col * this.cellW, row * this.cellH);
-        if (!glyph) continue;
-        if (glyph.color !== lastColor) {
-          this.ctx.fillStyle = glyph.color;
-          lastColor = glyph.color;
-        }
-        this.ctx.fillText(glyph.char, col * this.cellW - camX, row * this.cellH - camY);
+        const accent = hash2(col, row) < 0.03;
+        put(GROUND_CHAR, accent ? COLORS.groundAccent : COLORS.groundDot, col, row);
+      }
+    }
+
+    // 2. Decorations. Sprites reach up to ~14 rows above and ~16 columns beside their anchor,
+    // so we also draw blocks just outside the screen: 1 extra block sideways, 2 extra below.
+    const bx0 = Math.floor(firstCol / DECOR.blockCols) - 1;
+    const bx1 = Math.floor((firstCol + cols) / DECOR.blockCols) + 1;
+    const by0 = Math.floor(firstRow / DECOR.blockRows) - 1;
+    const by1 = Math.floor((firstRow + rows) / DECOR.blockRows) + 2;
+
+    const visible: Decoration[] = [];
+    for (let by = by0; by <= by1; by++) {
+      for (let bx = bx0; bx <= bx1; bx++) visible.push(...getBlock(bx, by));
+    }
+    // Sorted by anchor row so things lower on screen are drawn later, i.e. in front.
+    visible.sort((a, b) => a.row - b.row);
+
+    for (const deco of visible) {
+      for (const cell of deco.cells) {
+        put(cell.char, cell.color, deco.col + cell.dc, deco.row + cell.dr);
       }
     }
   }

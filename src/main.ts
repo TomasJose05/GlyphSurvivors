@@ -7,7 +7,7 @@ const renderer = new Renderer(canvas);
 
 function render(): void {
   renderer.clear();
-  renderer.drawTerrain(0, 0);
+  renderer.drawWorld(0, 0);
 }
 
 // The canvas can't use a font until it is loaded, so wait for it before measuring and drawing.

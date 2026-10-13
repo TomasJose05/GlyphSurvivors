@@ -20,7 +20,7 @@ The output goes to `dist/` and can be deployed as a static site (e.g. Netlify).
 
 ## Roadmap
 
-- [x] 1. Vite + TypeScript project and a procedural ASCII terrain (noise-based tree canopies and ground) on a dark canvas
+- [x] 1. Vite + TypeScript project and a dark canvas with an ASCII ground grid decorated with trees, bushes and grass (procedural, per-block sprites)
 - [ ] 2. Player (`@`) with keyboard movement
 - [ ] 3. Enemies that spawn at the edges and chase the player
 - [ ] 4. Auto-attack on the nearest enemy and a health system
