@@ -37,6 +37,7 @@ export class Player {
   /** `dt` is the time since the last frame in seconds, so speed is the same at any frame rate. */
   update(dt: number, input: Input, world: World): void {
     this.invulnerable = Math.max(0, this.invulnerable - dt);
+    if (this.stats.regen > 0) this.heal(this.stats.regen * dt);
 
     const dir = input.axis();
     this.x += dir.x * this.stats.moveSpeed * dt;

@@ -71,7 +71,7 @@ export class Combat {
     const reach = PLAYER.radius + ENEMY_RADIUS;
     for (const enemy of enemies) {
       if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < reach) {
-        player.takeDamage(enemy.type.damage);
+        player.takeDamage(enemy.damage);
       }
     }
   }

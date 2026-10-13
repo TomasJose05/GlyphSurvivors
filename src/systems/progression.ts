@@ -5,9 +5,10 @@ export class Progression {
   level = 1;
   xp = 0; // XP gathered towards the next level
 
-  /** XP needed to complete the current level. Grows linearly so each level takes a bit longer. */
+  /** XP needed to complete the current level. Early levels come fast; later ones take much longer. */
   get xpToNext(): number {
-    return PROGRESSION.firstLevelXp + (this.level - 1) * PROGRESSION.extraXpPerLevel;
+    const n = this.level - 1;
+    return Math.round(PROGRESSION.firstLevelXp + n * PROGRESSION.extraXpPerLevel + n * n * PROGRESSION.extraXpQuadratic);
   }
 
   /** Adds XP and returns how many levels were gained (a big reward can give more than one). */

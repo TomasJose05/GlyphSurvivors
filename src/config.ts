@@ -97,16 +97,44 @@ export interface EnemyType {
 
 export const ENEMY_RADIUS = 7; // px, used for collisions
 
-// Enemies must be slower than the player (180) so the player can always kite them.
+// Base stats; hp and damage are multiplied by DIFFICULTY growth as the run goes on.
+// `minTime` is when the type starts to appear, so the roster unlocks in phases:
+//   z from the start, s (faster) at 1:00, W (tank) at 2:00, v (bat, faster than the player) at 3:00,
+//   M (mini-boss, huge hp) at 6:00.
 export const ENEMY_TYPES: readonly EnemyType[] = [
   { char: 'z', color: '#9bbf6a', speed: 55, hp: 2, damage: 1, xp: 1, minTime: 0, weight: 6 },
-  { char: 's', color: '#d6a45a', speed: 95, hp: 2, damage: 1, xp: 2, minTime: 20, weight: 3 },
-  { char: 'W', color: '#c46a6a', speed: 38, hp: 6, damage: 2, xp: 5, minTime: 45, weight: 1 },
+  { char: 's', color: '#d6a45a', speed: 95, hp: 2, damage: 1, xp: 2, minTime: 60, weight: 3 },
+  { char: 'W', color: '#c46a6a', speed: 38, hp: 6, damage: 2, xp: 5, minTime: 120, weight: 1.5 },
+  { char: 'v', color: '#b58cf0', speed: 210, hp: 1, damage: 1, xp: 2, minTime: 180, weight: 2 },
+  { char: 'M', color: '#f07ab0', speed: 30, hp: 40, damage: 3, xp: 25, minTime: 360, weight: 0.3 },
 ];
+
+// How the run gets harder over time (t = minutes survived). Tuned with a bot, see git history.
+export const DIFFICULTY = {
+  // Spawn rate (enemies per second) = startRate + rateGrowthPerMinute * t + rateGrowthQuadratic * t^2.
+  // The quadratic term keeps the first minutes gentle and makes the late game steep.
+  startRate: 0.9,
+  rateGrowthPerMinute: 0.4,
+  rateGrowthQuadratic: 0.1,
+  maxEnemiesStart: 120, // cap on live enemies at the start...
+  maxEnemiesPerMinute: 20, // ...growing by this much per minute...
+  maxEnemiesCap: 260, // ...never above this (keeps the frame rate and the screen readable)
+  // Enemy hp multiplier = 1 + hpGrowthPerMinute * t + hpGrowthQuadratic * t^2.
+  hpGrowthPerMinute: 0.15,
+  hpGrowthQuadratic: 0.025,
+  damageGrowthPerMinute: 0.2, // enemy contact damage multiplier = 1 + this * t (rounded, min 1)
+  // Swarms: a ring of enemies that appears around the screen and closes in on the player.
+  swarmFirstAt: 90, // seconds
+  swarmEvery: 60, // seconds between swarms
+  swarmBaseCount: 8,
+  swarmExtraPerMinute: 6,
+  swarmAlertTime: 2.5, // seconds the "SWARM" warning stays on screen
+} as const;
 
 export const PROGRESSION = {
   firstLevelXp: 5, // XP needed to go from level 1 to 2
-  extraXpPerLevel: 4, // each following level needs this much more than the previous one
+  extraXpPerLevel: 4, // each following level needs this much more than the previous one...
+  extraXpQuadratic: 0.8, // ...plus this times (level - 1)^2, so late levels slow down a lot more
   choicesPerLevelUp: 3,
 } as const;
 
@@ -116,10 +144,6 @@ export const HUD = {
 } as const;
 
 export const SPAWN = {
-  startInterval: 1.2, // seconds between spawns at the start of a run
-  minInterval: 0.25, // never spawn faster than this
-  rampPerSecond: 0.012, // how much the interval shrinks for every second survived
-  maxEnemies: 150, // hard cap, keeps the frame rate and the screen readable
   margin: 40, // px outside the visible screen where enemies appear
 } as const;
 

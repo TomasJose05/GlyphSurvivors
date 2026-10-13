@@ -6,14 +6,17 @@ export class Enemy {
   x: number;
   y: number;
   hp: number;
+  readonly damage: number; // contact damage, already scaled by how late in the run it spawned
   flash = 0; // seconds left of the white "I was hit" flash
   readonly type: EnemyType;
 
-  constructor(type: EnemyType, x: number, y: number) {
+  /** `hpMult` and `damageMult` are the time-based difficulty scaling applied when it spawns. */
+  constructor(type: EnemyType, x: number, y: number, hpMult = 1, damageMult = 1) {
     this.type = type;
     this.x = x;
     this.y = y;
-    this.hp = type.hp;
+    this.hp = type.hp * hpMult;
+    this.damage = Math.max(1, Math.round(type.damage * damageMult));
   }
 
   get dead(): boolean {

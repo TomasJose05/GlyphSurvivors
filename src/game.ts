@@ -11,7 +11,7 @@ import { Progression } from './systems/progression';
 import { separate } from './systems/separation';
 import { Spawner } from './systems/spawner';
 import { createStats } from './systems/stats';
-import { pickUpgrades } from './systems/upgrades';
+import { applyUpgrade, pickUpgrades } from './systems/upgrades';
 import { drawGameOver, type RunSummary } from './ui/gameOver';
 import { drawHud } from './ui/hud';
 import { UpgradeMenu } from './ui/upgradeMenu';
@@ -86,7 +86,7 @@ export class Game {
     if (this.menu.isOpen) {
       const chosen = this.menu.handleInput(this.input, this.renderer);
       if (chosen) {
-        chosen.apply(this.player.stats, this.player);
+        applyUpgrade(chosen, this.player.stats, this.player);
         this.openNextLevelUp(); // several levels gained at once => several menus in a row
       }
       return;
@@ -152,9 +152,16 @@ export class Game {
   }
 
   private openNextLevelUp(): void {
-    if (this.pendingLevelUps <= 0) return;
-    this.pendingLevelUps--;
-    this.menu.open(pickUpgrades(this.player.stats, PROGRESSION.choicesPerLevelUp));
+    while (this.pendingLevelUps > 0) {
+      this.pendingLevelUps--;
+      const choices = pickUpgrades(this.player.stats, PROGRESSION.choicesPerLevelUp);
+      if (choices.length > 0) {
+        this.menu.open(choices);
+        return;
+      }
+      // Everything is maxed out: there's nothing to pick, so a level-up just heals a bit instead.
+      this.player.heal(this.player.stats.maxHp * 0.3);
+    }
   }
 
   render(): void {
@@ -166,6 +173,12 @@ export class Game {
     this.combat.draw(this.renderer, x, y);
     this.player.draw(this.renderer, x, y); // after the enemies, so the player is on top
     drawHud(this.renderer, this.player, this.progression, this.elapsed, this.best);
+
+    if (this.spawner.alert > 0 && !this.over) {
+      // Blinks so it catches the eye without covering the action.
+      const on = Math.floor(this.spawner.alert * 4) % 2 === 0;
+      this.renderer.drawGlyph(on ? '!! SWARM !!' : '   SWARM   ', '#ff6b5e', this.renderer.width / 2, this.renderer.height * 0.2);
+    }
 
     if (this.menu.isOpen) this.menu.draw(this.renderer);
     if (this.over) drawGameOver(this.renderer, this.over.summary, this.over.restartIn === 0);
