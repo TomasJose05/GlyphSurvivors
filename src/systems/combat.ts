@@ -1,18 +1,16 @@
-import { ENEMY_SHOT, PLAYER, WEAPON } from '../config';
+import { ENEMY_SHOT, PLAYER } from '../config';
 import type { Renderer } from '../engine/renderer';
 import { Enemy, enemyTypeByChar, type EnemyEnv } from '../entities/enemy';
 import { EnemyShot } from '../entities/enemyShot';
 import type { Player } from '../entities/player';
-import { Projectile } from '../entities/projectile';
 
-// Extra projectiles that have no separate enemy to aim at fan out around the main shot by this angle.
-const SPREAD_ANGLE = 0.14; // radians (~8 degrees)
-
-/** Handles the auto-fire weapon, both sides' bullets, contact damage, and what happens when enemies die. */
+/**
+ * What happens between the two sides once the weapons have done their damage: enemy bullets,
+ * contact damage, removing the dead (with their splitting) and the life recovered from kills.
+ * The player's own attacks live in src/weapons/.
+ */
 export class Combat {
-  private readonly projectiles: Projectile[] = [];
   private readonly enemyShots: EnemyShot[] = [];
-  private cooldown = 0; // seconds until the weapon can fire again
 
   /** What enemies need while acting: a way to fire bullets, and the size of the map. */
   makeEnv(width: number, height: number): EnemyEnv {
@@ -32,8 +30,6 @@ export class Combat {
     // Enemies that left for good (bats that flew past) vanish quietly: no XP, no splitting, no healing.
     removeWhere(enemies, (e) => e.gone);
 
-    this.fire(dt, player, enemies);
-    this.moveProjectiles(dt, enemies);
     this.moveEnemyShots(dt, player);
     this.contactDamage(player, enemies);
 
@@ -47,50 +43,7 @@ export class Combat {
   }
 
   draw(renderer: Renderer, camX: number, camY: number): void {
-    for (const p of this.projectiles) p.draw(renderer, camX, camY);
     for (const s of this.enemyShots) s.draw(renderer, camX, camY);
-  }
-
-  private fire(dt: number, player: Player, enemies: Enemy[]): void {
-    this.cooldown -= dt;
-    if (this.cooldown > 0) return;
-
-    const { projectiles: count, range, damage, fireInterval } = player.stats;
-    const targets = nearest(player, enemies, range, count);
-    // No target: leave the cooldown at <= 0 so we shoot the moment one comes into range.
-    if (targets.length === 0) return;
-
-    for (let i = 0; i < count; i++) {
-      // Each projectile gets its own target while there are enough enemies; the rest fan out
-      // around the nearest one, alternating left/right with a growing angle.
-      let angle = 0;
-      let target = targets[i];
-      if (!target) {
-        target = targets[0];
-        const extra = i - targets.length; // 0, 1, 2...
-        angle = (extra % 2 === 0 ? 1 : -1) * SPREAD_ANGLE * (Math.floor(extra / 2) + 1);
-      }
-      const base = Math.atan2(target.y - player.y, target.x - player.x);
-      const dirX = Math.cos(base + angle);
-      const dirY = Math.sin(base + angle);
-      this.projectiles.push(new Projectile(player.x, player.y, dirX, dirY, damage, range));
-    }
-    this.cooldown = fireInterval;
-  }
-
-  private moveProjectiles(dt: number, enemies: Enemy[]): void {
-    for (const p of this.projectiles) {
-      p.update(dt);
-      for (const enemy of enemies) {
-        if (enemy.dead) continue; // already killed by another shot this frame
-        if (Math.hypot(enemy.x - p.x, enemy.y - p.y) < WEAPON.projectileRadius + enemy.radius) {
-          enemy.takeDamage(p.damage);
-          p.used = true;
-          break; // a projectile hits one enemy at most
-        }
-      }
-    }
-    removeWhere(this.projectiles, (p) => p.used || p.expired);
   }
 
   private moveEnemyShots(dt: number, player: Player): void {
@@ -128,17 +81,6 @@ export class Combat {
       }
     }
   }
-}
-
-/** Up to `count` enemies within `range` pixels of the player, closest first. */
-function nearest(player: Player, enemies: Enemy[], range: number, count: number): Enemy[] {
-  const inRange: { enemy: Enemy; dist: number }[] = [];
-  for (const enemy of enemies) {
-    const dist = Math.hypot(enemy.x - player.x, enemy.y - player.y);
-    if (dist < range) inRange.push({ enemy, dist });
-  }
-  inRange.sort((a, b) => a.dist - b.dist);
-  return inRange.slice(0, count).map((entry) => entry.enemy);
 }
 
 /** Removes matching items in place and returns them. Walks backwards so removing doesn't skip items. */

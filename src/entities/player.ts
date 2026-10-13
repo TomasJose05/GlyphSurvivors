@@ -10,6 +10,9 @@ export class Player {
   y: number;
   hp: number;
   readonly stats: Stats;
+  // Unit vector of the last direction the player moved in. Weapons that aim "forward" use it.
+  facingX = 1;
+  facingY = 0;
   private invulnerable = 0; // seconds of immunity left
 
   constructor(x: number, y: number, stats: Stats) {
@@ -39,6 +42,11 @@ export class Player {
     this.invulnerable = Math.max(0, this.invulnerable - dt);
 
     const dir = input.axis();
+    if (dir.x !== 0 || dir.y !== 0) {
+      const len = Math.hypot(dir.x, dir.y);
+      this.facingX = dir.x / len;
+      this.facingY = dir.y / len;
+    }
     this.x += dir.x * this.stats.moveSpeed * dt;
     this.y += dir.y * this.stats.moveSpeed * dt;
 

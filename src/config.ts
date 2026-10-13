@@ -67,21 +67,16 @@ export const ENEMY_FLASH = {
 export const PLAYER = {
   char: '@',
   speed: 180, // px per second
-  maxHp: 18,
+  maxHp: 22,
   radius: 7, // px, used for collisions
   invulnerableTime: 0.7, // seconds of immunity after being hit
 } as const;
 
-// Automatic weapon: fires at the nearest enemy in range, no aiming needed.
-// interval, damage and range are starting values (see the note on PLAYER); the rest never change.
-export const WEAPON = {
-  interval: 0.6, // seconds between shots
-  damage: 1,
-  range: 380, // px; enemies farther than this are ignored
-  projectileSpeed: 420, // px per second
-  projectileRadius: 6,
-  projectileChar: '*',
-  projectileColor: '#ffe27a',
+// How many different weapons and passives the player can carry at once. Weapon numbers (damage,
+// cooldown, per-level upgrades) live at the top of each file in src/weapons/.
+export const LOADOUT = {
+  maxWeapons: 6,
+  maxPassives: 6,
 } as const;
 
 /**
@@ -167,13 +162,13 @@ export const DIFFICULTY = {
   // The quadratic term keeps the first minutes gentle and makes the late game steep.
   startRate: 0.9,
   rateGrowthPerMinute: 0.4,
-  rateGrowthQuadratic: 0.1,
+  rateGrowthQuadratic: 0.13,
   maxEnemiesStart: 120, // cap on live enemies at the start...
   maxEnemiesPerMinute: 20, // ...growing by this much per minute...
   maxEnemiesCap: 260, // ...never above this (keeps the frame rate and the screen readable)
   // Enemy hp multiplier = 1 + hpGrowthPerMinute * t + hpGrowthQuadratic * t^2.
   hpGrowthPerMinute: 0.15,
-  hpGrowthQuadratic: 0.03,
+  hpGrowthQuadratic: 0.045,
   damageGrowthPerMinute: 0.32, // enemy contact damage multiplier = 1 + this * t (rounded, min 1)
   // Swarms: a ring of enemies that appears around the screen and closes in on the player.
   swarmFirstAt: 90, // seconds
@@ -193,8 +188,8 @@ export const LEECH = {
 } as const;
 
 export const PROGRESSION = {
-  firstLevelXp: 5, // XP needed to go from level 1 to 2
-  extraXpPerLevel: 4, // each following level needs this much more than the previous one...
+  firstLevelXp: 4, // XP needed to go from level 1 to 2
+  extraXpPerLevel: 3, // each following level needs this much more than the previous one...
   extraXpQuadratic: 0.8, // ...plus this times (level - 1)^2, so late levels slow down a lot more
   choicesPerLevelUp: 3,
 } as const;

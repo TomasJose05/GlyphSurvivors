@@ -1,10 +1,14 @@
 import type { Input } from '../engine/input';
 import type { Renderer } from '../engine/renderer';
-import type { Upgrade } from '../systems/upgrades';
+import type { Offer } from '../systems/upgrades';
 
-const INNER_COLS = 24; // characters between the card's side borders
-const CARD_ROWS = 6; // border, name, blank, description, blank, border
+const INNER_COLS = 30; // characters between the card's side borders
+const CARD_ROWS = 7; // border, name, tag, blank, description, blank, border
 const GAP_COLS = 3; // gap between cards, in characters
+
+// Weapons stand out from passives, and a brand-new weapon stands out from an upgrade of one you own.
+const NAME_COLOR = { weapon: '#ffe27a', passive: '#9fd0ff' } as const;
+const NEW_COLOR = '#7ddc8a';
 
 interface Rect {
   x: number;
@@ -13,21 +17,21 @@ interface Rect {
   h: number;
 }
 
-/** "Pick one of N upgrades" screen. Cards are drawn with ASCII borders to match the rest of the game. */
+/** "Pick one of N options" screen. Cards are drawn with ASCII borders to match the rest of the game. */
 export class UpgradeMenu {
-  private choices: Upgrade[] = [];
+  private choices: Offer[] = [];
 
   get isOpen(): boolean {
     return this.choices.length > 0;
   }
 
-  open(choices: Upgrade[]): void {
+  open(choices: Offer[]): void {
     this.choices = choices;
   }
 
-  /** Reads keys 1-3 and mouse clicks. Returns the chosen upgrade (and closes the menu), or null. */
-  handleInput(input: Input, renderer: Renderer): Upgrade | null {
-    let picked: Upgrade | null = null;
+  /** Reads keys 1-3 and mouse clicks. Returns the chosen offer (and closes the menu), or null. */
+  handleInput(input: Input, renderer: Renderer): Offer | null {
+    let picked: Offer | null = null;
 
     for (const code of input.takePressed()) {
       const match = /^(?:Digit|Numpad)([1-9])$/.exec(code);
@@ -53,23 +57,21 @@ export class UpgradeMenu {
     renderer.drawGlyph('LEVEL UP!', '#ffe27a', renderer.width / 2, rects[0].y - renderer.cellH * 3);
     renderer.drawGlyph('Press 1 / 2 / 3 or click to choose', '#8a97a3', renderer.width / 2, rects[0].y - renderer.cellH * 1.5);
 
-    this.choices.forEach((upgrade, i) => {
+    this.choices.forEach((offer, i) => {
       const { x, y } = rects[i];
       const edge = `+${'-'.repeat(INNER_COLS)}+`;
       const line = (text: string): string => `|${text.padEnd(INNER_COLS)}|`;
-      const lines = [
-        edge,
-        line(` [${i + 1}] ${upgrade.name}`),
-        line(''),
-        line(` ${upgrade.desc}`),
-        line(''),
-        edge,
+      const isNew = offer.tag.startsWith('NEW');
+      const lines: [string, string][] = [
+        [edge, '#7f93a3'],
+        [line(` [${i + 1}] ${offer.name}`), NAME_COLOR[offer.kind]],
+        [line(` ${offer.tag}`), isNew ? NEW_COLOR : '#a9b6c2'],
+        [line(''), '#7f93a3'],
+        [line(` ${offer.desc}`), '#d4dde5'],
+        [line(''), '#7f93a3'],
+        [edge, '#7f93a3'],
       ];
-      lines.forEach((text, row) => {
-        // The name line is highlighted; the rest of the card is a calmer color.
-        const color = row === 1 ? '#e8f0ff' : '#7f93a3';
-        renderer.drawText(text, color, x, y + row * renderer.cellH);
-      });
+      lines.forEach(([text, color], row) => renderer.drawText(text, color, x, y + row * renderer.cellH));
     });
   }
 

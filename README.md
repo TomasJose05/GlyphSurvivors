@@ -28,6 +28,28 @@ The output goes to `dist/` and can be deployed as a static site (e.g. Netlify).
 - [x] 6. Visual effects: colors, death particles, ASCII trees
 - [x] 7. Game over screen, restart and best time in localStorage
 
+## Weapons
+
+You start with the Magic Bolt. Every level-up offers three options: a **new weapon**, the **next level of one you carry**
+(weapons go from level 1 to 8), or a **passive**. You can carry up to 6 weapons and 6 passives at a time.
+
+| Icon | Weapon | How it works |
+|------|--------|--------------|
+| `*` | Magic Bolt | fires at the nearest enemy |
+| `/` | Throwing Daggers | throws daggers in the direction you are walking |
+| `~` | Lash | whips a band beside you, alternating sides |
+| `O` | Aura of Flame | a ring around you that burns and pushes enemies back |
+| `+` | Orbiting Blades | blades that circle you and cut whatever they touch |
+| `<` | Boomerang | flies out through enemies, then comes back |
+| `\|` | Lightning | strikes random enemies on screen |
+| `=` | Acid Pools | leaves damaging puddles on the ground |
+
+Passives affect **every** weapon: Power (+damage), Quick Hands (-cooldown), Duplicator (+1 projectile/blade/strike),
+Reach (+area/range), plus Swift Boots, Vitality and Bloodthirst.
+
+Each weapon is a class in `src/weapons/` (its numbers sit at the top of its file, and `steps` describes what each level
+adds). To add a new one, write the class and add a line to `WEAPON_FACTORIES` in `src/weapons/loadout.ts`.
+
 ## Difficulty
 
 Modeled on Vampire Survivors: a gentle first couple of minutes, then a steady (convex) ramp.
@@ -55,4 +77,5 @@ Each type has its own behavior (see `Behavior` in `src/config.ts`), unlocked in 
 
 All the numbers live in `DIFFICULTY`, `ENEMY_TYPES`, `PLAYER`, `LEECH`, `PROGRESSION` in `src/config.ts`
 and the upgrade list in `src/systems/upgrades.ts`. They were tuned with a headless simulator and a simple
-kiting bot (median survival about 11 minutes; a human will usually do worse than the bot).
+kiting bot. Rough survival medians: ~9 minutes when picking upgrades at random, ~20 minutes when spreading picks between
+weapons and passives, ~5 minutes when only levelling weapons and ignoring passives (a human is usually worse than the bot at dodging).

@@ -11,10 +11,11 @@ import { Progression } from './systems/progression';
 import { separate } from './systems/separation';
 import { Spawner } from './systems/spawner';
 import { createStats } from './systems/stats';
-import { applyUpgrade, pickUpgrades } from './systems/upgrades';
+import { pickOffers } from './systems/upgrades';
 import { drawGameOver, type RunSummary } from './ui/gameOver';
 import { drawHud } from './ui/hud';
 import { UpgradeMenu } from './ui/upgradeMenu';
+import { createLoadout, type Loadout } from './weapons/loadout';
 import { generateScenery } from './world/scenery';
 import { World } from './world/world';
 
@@ -42,6 +43,7 @@ export class Game {
   private enemies!: Enemy[];
   private spawner!: Spawner;
   private combat!: Combat;
+  private loadout!: Loadout;
   private enemyEnv!: EnemyEnv;
   private progression!: Progression;
   private particles!: Particles;
@@ -65,6 +67,7 @@ export class Game {
     this.enemies = [];
     this.spawner = new Spawner();
     this.combat = new Combat();
+    this.loadout = createLoadout();
     this.enemyEnv = this.combat.makeEnv(this.world.width, this.world.height);
     this.progression = new Progression();
     this.particles = new Particles();
@@ -88,7 +91,7 @@ export class Game {
     if (this.menu.isOpen) {
       const chosen = this.menu.handleInput(this.input, this.renderer);
       if (chosen) {
-        applyUpgrade(chosen, this.player.stats, this.player);
+        chosen.apply();
         this.openNextLevelUp(); // several levels gained at once => several menus in a row
       }
       return;
@@ -104,6 +107,8 @@ export class Game {
     for (const enemy of this.enemies) enemy.update(dt, this.player.x, this.player.y, this.enemyEnv);
     separate(this.enemies);
 
+    // Weapons first (they deal the damage), then the rest of combat removes the dead.
+    this.loadout.update(dt, { player: this.player, stats: this.player.stats, enemies: this.enemies, view });
     const killed = this.combat.update(dt, this.player, this.enemies);
     for (const enemy of killed) {
       this.kills++;
@@ -156,7 +161,7 @@ export class Game {
   private openNextLevelUp(): void {
     while (this.pendingLevelUps > 0) {
       this.pendingLevelUps--;
-      const choices = pickUpgrades(this.player.stats, PROGRESSION.choicesPerLevelUp);
+      const choices = pickOffers(this.player, this.loadout, PROGRESSION.choicesPerLevelUp);
       if (choices.length > 0) {
         this.menu.open(choices);
         return;
@@ -171,9 +176,10 @@ export class Game {
     this.renderer.drawGround(this.world, x, y);
     for (const enemy of this.enemies) enemy.draw(this.renderer, x, y);
     this.particles.draw(this.renderer, x, y);
+    this.loadout.draw(this.renderer, x, y);
     this.combat.draw(this.renderer, x, y);
     this.player.draw(this.renderer, x, y); // after the enemies, so the player is on top
-    drawHud(this.renderer, this.player, this.progression, this.elapsed, this.best);
+    drawHud(this.renderer, this.player, this.progression, this.loadout, this.elapsed, this.best);
 
     if (this.spawner.alert > 0 && !this.over) {
       // Blinks so it catches the eye without covering the action.
