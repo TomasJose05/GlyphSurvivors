@@ -7,11 +7,11 @@ const renderer = new Renderer(canvas);
 
 function render(): void {
   renderer.clear();
-  renderer.drawWorld(0, 0);
+  renderer.drawGroundGrid();
 }
 
 // The canvas can't use a font until it is loaded, so wait for it before measuring and drawing.
-document.fonts.load('16px "VT323"').then(() => {
+document.fonts.load('20px "VT323"').then(() => {
   renderer.applyFont();
   render();
 });
