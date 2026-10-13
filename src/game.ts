@@ -5,6 +5,7 @@ import type { Renderer } from './engine/renderer';
 import { Enemy } from './entities/enemy';
 import { Player } from './entities/player';
 import { Combat } from './systems/combat';
+import { Particles } from './systems/particles';
 import { Progression } from './systems/progression';
 import { separate } from './systems/separation';
 import { Spawner } from './systems/spawner';
@@ -12,6 +13,7 @@ import { createStats } from './systems/stats';
 import { pickUpgrades } from './systems/upgrades';
 import { drawHud } from './ui/hud';
 import { UpgradeMenu } from './ui/upgradeMenu';
+import { generateScenery } from './world/scenery';
 import { World } from './world/world';
 
 /** Owns everything that exists in a run and advances it one frame at a time. */
@@ -22,6 +24,7 @@ export class Game {
   private readonly spawner = new Spawner();
   private readonly combat = new Combat();
   private readonly progression = new Progression();
+  private readonly particles = new Particles();
   private readonly menu = new UpgradeMenu();
   private readonly world: World;
   private readonly player: Player;
@@ -31,7 +34,7 @@ export class Game {
   constructor(renderer: Renderer) {
     this.renderer = renderer;
     this.world = new World(renderer.cellW, renderer.cellH);
-    this.renderer.buildGroundCache(this.world);
+    this.renderer.buildGroundCache(this.world, generateScenery(this.world));
     // Start in the middle of the world.
     this.player = new Player(this.world.width / 2, this.world.height / 2, createStats());
   }
@@ -60,7 +63,11 @@ export class Game {
     separate(this.enemies);
 
     const killed = this.combat.update(dt, this.player, this.enemies);
-    for (const enemy of killed) this.pendingLevelUps += this.progression.addXp(enemy.type.xp);
+    for (const enemy of killed) {
+      this.pendingLevelUps += this.progression.addXp(enemy.type.xp);
+      this.particles.burst(enemy.x, enemy.y, enemy.type.char, enemy.type.color);
+    }
+    this.particles.update(dt);
     this.openNextLevelUp();
 
     // Clicks and key presses made while playing must not leak into the next menu.
@@ -79,6 +86,7 @@ export class Game {
     this.renderer.clear();
     this.renderer.drawGround(this.world, x, y);
     for (const enemy of this.enemies) enemy.draw(this.renderer, x, y);
+    this.particles.draw(this.renderer, x, y);
     this.combat.draw(this.renderer, x, y);
     this.player.draw(this.renderer, x, y); // after the enemies, so the player is on top
     drawHud(this.renderer, this.player, this.progression);

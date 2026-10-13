@@ -58,7 +58,7 @@ export class Combat {
       for (const enemy of enemies) {
         if (enemy.dead) continue; // already killed by another shot this frame
         if (Math.hypot(enemy.x - p.x, enemy.y - p.y) < reach) {
-          enemy.hp -= p.damage;
+          enemy.takeDamage(p.damage);
           p.used = true;
           break; // a projectile hits one enemy at most
         }

@@ -1,4 +1,4 @@
-import type { EnemyType } from '../config';
+import { ENEMY_FLASH, type EnemyType } from '../config';
 import type { Renderer } from '../engine/renderer';
 
 export class Enemy {
@@ -6,6 +6,7 @@ export class Enemy {
   x: number;
   y: number;
   hp: number;
+  flash = 0; // seconds left of the white "I was hit" flash
   readonly type: EnemyType;
 
   constructor(type: EnemyType, x: number, y: number) {
@@ -19,8 +20,14 @@ export class Enemy {
     return this.hp <= 0;
   }
 
+  takeDamage(amount: number): void {
+    this.hp -= amount;
+    this.flash = ENEMY_FLASH.duration;
+  }
+
   /** Walk in a straight line toward the target. `dt` is in seconds. */
   update(dt: number, targetX: number, targetY: number): void {
+    this.flash = Math.max(0, this.flash - dt);
     const dx = targetX - this.x;
     const dy = targetY - this.y;
     const dist = Math.hypot(dx, dy);
@@ -31,6 +38,7 @@ export class Enemy {
   }
 
   draw(renderer: Renderer, camX: number, camY: number): void {
-    renderer.drawGlyph(this.type.char, this.type.color, this.x - camX, this.y - camY);
+    const color = this.flash > 0 ? ENEMY_FLASH.color : this.type.color;
+    renderer.drawGlyph(this.type.char, color, this.x - camX, this.y - camY);
   }
 }
