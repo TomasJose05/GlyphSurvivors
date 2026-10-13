@@ -22,32 +22,6 @@ export const WORLD = {
   rows: 90,
 } as const;
 
-// speed and maxHp are the *starting* values; upgrades change the live copy in `Stats` (systems/stats.ts).
-// Decorative trees, bushes and grass drawn into the ground. Purely visual: nothing collides with them.
-export const SCENERY = {
-  enabled: true,
-  blockCols: 14, // the world is split into blocks of this many cells, with at most one big plant each
-  blockRows: 7,
-  plantChance: 0.4, // chance that a block gets a tree or bush
-  tuftsPerBlock: 3, // attempts per block to place a grass tuft
-  tuftChance: 0.5,
-  spawnClearing: { cols: 12, rows: 6 }, // keep the area around the player's start free of plants
-} as const;
-
-// One color per sprite character, so shading is part of the drawing itself.
-export const SCENERY_COLORS: Readonly<Record<string, string>> = {
-  '^': '#8fd19e', // treetop highlight
-  '/': '#2f6b4a', // pine outline
-  '\\': '#2f6b4a',
-  '*': '#4f9a68', // mid leaves
-  o: '#6fb57f', // light leaves
-  '|': '#6b4a32', // trunk
-  '"': '#3f6b45', // grass
-  "'": '#4d7e50',
-  ',': '#365b3c',
-  '%': '#c46a8a', // flowers
-};
-
 // Particles: the burst of letters left when an enemy dies.
 export const PARTICLES = {
   perDeath: 8,
@@ -64,6 +38,7 @@ export const ENEMY_FLASH = {
   color: '#ffffff',
 } as const;
 
+// speed and maxHp are the *starting* values; passives change the live copy in `Stats` (systems/stats.ts).
 export const PLAYER = {
   char: '@',
   speed: 180, // px per second

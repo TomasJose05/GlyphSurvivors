@@ -1,5 +1,4 @@
 import { BORDER_CHAR, COLORS, FONT, GROUND_CHAR } from '../config';
-import type { SceneryCell } from '../world/scenery';
 import type { World } from '../world/world';
 
 /** Draws characters onto a full-window canvas. */
@@ -50,8 +49,8 @@ export class Renderer {
     this.cellH = FONT.size;
   }
 
-  /** Pre-render the whole ground (dots, scenery, border) once. Cell size is fixed, so it never changes. */
-  buildGroundCache(world: World, scenery: SceneryCell[]): void {
+  /** Pre-render the whole ground (dots and border) once. Cell size is fixed, so it never changes. */
+  buildGroundCache(world: World): void {
     const cache = document.createElement('canvas');
     // One extra cell on every side for the border.
     const w = world.width + world.cellW * 2;
@@ -77,15 +76,6 @@ export class Renderer {
       }
     }
 
-    // Scenery goes on top of the dots. The dot under each plant character is erased first, otherwise
-    // it would show through next to the glyph. (Cache cell = world cell + 1 because of the border.)
-    for (const cell of scenery) {
-      const left = (cell.col + 1) * world.cellW;
-      const top = (cell.row + 1) * world.cellH;
-      ctx.clearRect(left, top, world.cellW, world.cellH);
-      ctx.fillStyle = cell.color;
-      ctx.fillText(cell.char, left + world.cellW / 2, top + world.cellH / 2);
-    }
     this.groundCache = cache;
   }
 

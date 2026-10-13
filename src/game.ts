@@ -16,7 +16,6 @@ import { drawGameOver, type RunSummary } from './ui/gameOver';
 import { drawHud } from './ui/hud';
 import { UpgradeMenu } from './ui/upgradeMenu';
 import { createLoadout, type Loadout } from './weapons/loadout';
-import { generateScenery } from './world/scenery';
 import { World } from './world/world';
 
 // Keys that restart the game from the game over screen.
@@ -56,7 +55,7 @@ export class Game {
   constructor(renderer: Renderer) {
     this.renderer = renderer;
     this.world = new World(renderer.cellW, renderer.cellH);
-    this.renderer.buildGroundCache(this.world, generateScenery(this.world));
+    this.renderer.buildGroundCache(this.world);
     this.reset();
   }
 
