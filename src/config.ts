@@ -17,9 +17,11 @@ export const GROUND_CHAR = '.';
 export const BORDER_CHAR = '#';
 
 // The world is finite. Its size is given in character cells; pixel size is derived from the font.
+// Roughly 6400 x 6400 px: about 5 screens wide and 9 tall at 1280x720. (Vampire Survivors doesn't
+// publish its stage sizes, so this is an estimate of "a big open arena".)
 export const WORLD = {
-  cols: 240,
-  rows: 90,
+  cols: 800,
+  rows: 320,
 } as const;
 
 // Particles: the burst of letters left when an enemy dies.
@@ -144,6 +146,9 @@ export const DIFFICULTY = {
   // Enemy hp multiplier = 1 + hpGrowthPerMinute * t + hpGrowthQuadratic * t^2.
   hpGrowthPerMinute: 0.15,
   hpGrowthQuadratic: 0.045,
+  // Enemy speed multiplier = min(speedMax, 1 + speedGrowthPerMinute * t). Kiting gets harder as they speed up.
+  speedGrowthPerMinute: 0.08,
+  speedMax: 1.8,
   damageGrowthPerMinute: 0.32, // enemy contact damage multiplier = 1 + this * t (rounded, min 1)
   // Swarms: a ring of enemies that appears around the screen and closes in on the player.
   swarmFirstAt: 90, // seconds

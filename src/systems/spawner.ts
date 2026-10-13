@@ -66,7 +66,8 @@ export class Spawner {
     const m = this.minutes;
     const hpMult = 1 + DIFFICULTY.hpGrowthPerMinute * m + DIFFICULTY.hpGrowthQuadratic * m * m;
     const damageMult = 1 + DIFFICULTY.damageGrowthPerMinute * m;
-    return new Enemy(type, x, y, hpMult, damageMult);
+    const speedMult = Math.min(DIFFICULTY.speedMax, 1 + DIFFICULTY.speedGrowthPerMinute * m);
+    return new Enemy(type, x, y, hpMult, damageMult, speedMult);
   }
 
   /** Spawns one enemy of a random unlocked type at `pos`; flock types spawn as a whole flock. */

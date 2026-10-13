@@ -24,6 +24,7 @@ export class Enemy {
   readonly damage: number; // contact/bullet damage, already scaled by how late in the run it spawned
   readonly hpMult: number; // remembered so enemies born from a split get the same scaling
   readonly damageMult: number;
+  readonly speedMult: number; // time-based speed scaling, applied to every kind of movement
   readonly type: EnemyType;
   flash = 0; // seconds left of the white "I was hit" flash
   gone = false; // left the area for good (e.g. a bat that flew past); removed without giving XP
@@ -41,12 +42,13 @@ export class Enemy {
   private aimY = 0;
 
   /** `hpMult` and `damageMult` are the time-based difficulty scaling applied when it spawns. */
-  constructor(type: EnemyType, x: number, y: number, hpMult = 1, damageMult = 1) {
+  constructor(type: EnemyType, x: number, y: number, hpMult = 1, damageMult = 1, speedMult = 1) {
     this.type = type;
     this.x = x;
     this.y = y;
     this.hpMult = hpMult;
     this.damageMult = damageMult;
+    this.speedMult = speedMult;
     this.hp = type.hp * hpMult;
     this.damage = Math.max(1, Math.round(type.damage * damageMult));
     // Shooters don't all fire in the same frame: stagger the first shot.
@@ -55,6 +57,11 @@ export class Enemy {
 
   get dead(): boolean {
     return this.hp <= 0;
+  }
+
+  /** Movement speed right now, in px per second. */
+  private get speed(): number {
+    return this.type.speed * this.speedMult;
   }
 
   get radius(): number {
@@ -80,7 +87,7 @@ export class Enemy {
 
     switch (this.type.behavior) {
       case 'chase':
-        this.move(ux, uy, this.type.speed, dt);
+        this.move(ux, uy, this.speed, dt);
         break;
       case 'wave':
         this.updateWave(dt, ux, uy);
@@ -95,7 +102,7 @@ export class Enemy {
         this.updateCharger(dt, ux, uy, dist);
         break;
       case 'boss':
-        this.move(ux, uy, this.type.speed, dt);
+        this.move(ux, uy, this.speed, dt);
         this.updateBossFire(dt, dist, env);
         break;
     }
@@ -115,15 +122,15 @@ export class Enemy {
     const wave = this.type.wave ?? { amplitude: 60, frequency: 2.5 };
     // Sideways speed is the derivative of `amplitude * sin(frequency * t)`.
     const side = wave.amplitude * wave.frequency * Math.cos(this.age * wave.frequency + this.phase);
-    this.x += (ux * this.type.speed - uy * side) * dt;
-    this.y += (uy * this.type.speed + ux * side) * dt;
+    this.x += (ux * this.speed - uy * side) * dt;
+    this.y += (uy * this.speed + ux * side) * dt;
   }
 
   /** Picks a direction once (toward where the player is right now) and never turns after that. */
   private updateSwoop(dt: number, ux: number, uy: number, dist: number): void {
     if (this.age <= dt) {
-      this.velX = ux * this.type.speed;
-      this.velY = uy * this.type.speed;
+      this.velX = ux * this.speed;
+      this.velY = uy * this.speed;
     }
     this.x += this.velX * dt;
     this.y += this.velY * dt;
@@ -135,9 +142,9 @@ export class Enemy {
   private updateShooter(dt: number, ux: number, uy: number, dist: number, env: EnemyEnv): void {
     const near = 190;
     const far = 320;
-    if (dist > far) this.move(ux, uy, this.type.speed, dt);
-    else if (dist < near) this.move(-ux, -uy, this.type.speed * 0.8, dt);
-    else this.move(-uy * this.strafe, ux * this.strafe, this.type.speed * 0.5, dt);
+    if (dist > far) this.move(ux, uy, this.speed, dt);
+    else if (dist < near) this.move(-ux, -uy, this.speed * 0.8, dt);
+    else this.move(-uy * this.strafe, ux * this.strafe, this.speed * 0.5, dt);
 
     const shoot = this.type.shoot;
     if (!shoot) return;
@@ -155,7 +162,7 @@ export class Enemy {
 
     switch (this.chargeState) {
       case 'approach':
-        this.move(ux, uy, this.type.speed, dt);
+        this.move(ux, uy, this.speed, dt);
         if (dist < charge.range) {
           this.chargeState = 'windup';
           this.chargeTimer = charge.windup;
@@ -174,7 +181,7 @@ export class Enemy {
         }
         break;
       case 'dash':
-        this.move(this.aimX, this.aimY, charge.dashSpeed, dt);
+        this.move(this.aimX, this.aimY, charge.dashSpeed * this.speedMult, dt);
         this.chargeTimer -= dt;
         if (this.chargeTimer <= 0) {
           this.chargeState = 'recover';

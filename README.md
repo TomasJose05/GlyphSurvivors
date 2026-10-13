@@ -54,7 +54,7 @@ adds). To add a new one, write the class and add a line to `WEAPON_FACTORIES` in
 
 Modeled on Vampire Survivors: a gentle first couple of minutes, then a steady (convex) ramp.
 
-- Enemies spawn faster over time, have more HP and hit harder.
+- Enemies spawn faster over time, have more HP, hit harder and move faster (up to x1.8).
 - Every minute (from 1:30) a **swarm** ring closes in from all sides, and from 6:00 a **boss** arrives every 2 minutes.
 - Every upgrade has a max level, so power is capped and late waves eventually overwhelm you.
 - **Healing is scarce on purpose:** the only way to recover HP is the *Bloodthirst* upgrade (a small % of max HP per kill).
@@ -77,5 +77,11 @@ Each type has its own behavior (see `Behavior` in `src/config.ts`), unlocked in 
 
 All the numbers live in `DIFFICULTY`, `ENEMY_TYPES`, `PLAYER`, `LEECH`, `PROGRESSION` in `src/config.ts`
 and the upgrade list in `src/systems/upgrades.ts`. They were tuned with a headless simulator and a simple
-kiting bot. Rough survival medians: ~9 minutes when picking upgrades at random, ~20 minutes when spreading picks between
-weapons and passives, ~5 minutes when only levelling weapons and ignoring passives (a human is usually worse than the bot at dodging).
+kiting bot. Rough survival medians: ~10 minutes when picking upgrades at random, ~9-10 minutes (with a long tail up to 20+) when
+spreading picks between weapons and passives, ~8 minutes when only levelling weapons (a human is usually worse than the bot at dodging).
+
+## The map
+
+The arena is a finite 6400 x 6400 px rectangle (800 x 320 character cells), ringed by `#`. Vampire Survivors does not publish
+its stage sizes, so this is an estimate of a big open arena. Change it with `WORLD` in `src/config.ts`: the ground is drawn
+from a small repeated tile, so memory use does not grow with the map size.

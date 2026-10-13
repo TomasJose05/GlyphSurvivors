@@ -77,7 +77,7 @@ export class Combat {
         const angle = (i / split.count) * Math.PI * 2 + Math.random();
         const x = dead.x + Math.cos(angle) * 12;
         const y = dead.y + Math.sin(angle) * 12;
-        enemies.push(new Enemy(childType, x, y, dead.hpMult, dead.damageMult));
+        enemies.push(new Enemy(childType, x, y, dead.hpMult, dead.damageMult, dead.speedMult));
       }
     }
   }

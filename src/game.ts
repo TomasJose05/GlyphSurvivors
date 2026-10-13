@@ -55,7 +55,7 @@ export class Game {
   constructor(renderer: Renderer) {
     this.renderer = renderer;
     this.world = new World(renderer.cellW, renderer.cellH);
-    this.renderer.buildGroundCache(this.world);
+    this.renderer.buildGroundTile(this.world);
     this.reset();
   }
 

@@ -15,8 +15,10 @@ export class Renderer {
   cellW = 0;
   cellH = 0;
 
-  // The static ground is drawn once into this hidden canvas and then copied each frame.
-  private groundCache: HTMLCanvasElement | null = null;
+  // One small tile of ground dots, repeated across the screen every frame (see buildGroundTile).
+  private groundTile: HTMLCanvasElement | null = null;
+  private tileCols = 32;
+  private tileRows = 16;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -49,34 +51,30 @@ export class Renderer {
     this.cellH = FONT.size;
   }
 
-  /** Pre-render the whole ground (dots and border) once. Cell size is fixed, so it never changes. */
-  buildGroundCache(world: World): void {
-    const cache = document.createElement('canvas');
-    // One extra cell on every side for the border.
-    const w = world.width + world.cellW * 2;
-    const h = world.height + world.cellH * 2;
-    cache.width = Math.ceil(w * this.dpr);
-    cache.height = Math.ceil(h * this.dpr);
-    const ctx = cache.getContext('2d');
+  /**
+   * The ground is the same dot in every cell, so instead of storing an image of the whole world
+   * (which would eat memory as the map grows) we pre-render one small tile and repeat it.
+   */
+  buildGroundTile(world: World): void {
+    const tile = document.createElement('canvas');
+    this.tileCols = 32;
+    this.tileRows = 16;
+    tile.width = Math.ceil(this.tileCols * world.cellW * this.dpr);
+    tile.height = Math.ceil(this.tileRows * world.cellH * this.dpr);
+    const ctx = tile.getContext('2d');
     if (!ctx) throw new Error('2D canvas is not supported');
 
     ctx.scale(this.dpr, this.dpr);
     ctx.font = `${FONT.size}px ${FONT.family}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
-    // Cell (c, r) of the cache covers world cell (c - 1, r - 1); the outer ring is the border.
-    for (let r = -1; r <= world.rows; r++) {
-      for (let c = -1; c <= world.cols; c++) {
-        const isBorder = r === -1 || c === -1 || r === world.rows || c === world.cols;
-        ctx.fillStyle = isBorder ? COLORS.border : COLORS.gridDot;
-        const x = (c + 1) * world.cellW + world.cellW / 2;
-        const y = (r + 1) * world.cellH + world.cellH / 2;
-        ctx.fillText(isBorder ? BORDER_CHAR : GROUND_CHAR, x, y);
+    ctx.fillStyle = COLORS.gridDot;
+    for (let r = 0; r < this.tileRows; r++) {
+      for (let c = 0; c < this.tileCols; c++) {
+        ctx.fillText(GROUND_CHAR, c * world.cellW + world.cellW / 2, r * world.cellH + world.cellH / 2);
       }
     }
-
-    this.groundCache = cache;
+    this.groundTile = tile;
   }
 
   /** Paint the whole canvas with the background color. */
@@ -89,27 +87,52 @@ export class Renderer {
   }
 
   /**
-   * Draw the part of the ground that the camera sees. (camX, camY) is the world position of the
-   * screen's top-left corner. May be negative when the world is smaller than the window.
+   * Draw the part of the ground that the camera sees: the dot tile repeated over the playable area,
+   * then the `#` border ring just outside it. (camX, camY) is the world position of the screen's
+   * top-left corner.
    */
   drawGround(world: World, camX: number, camY: number): void {
-    if (!this.groundCache) return;
-    // The cache has a one-cell border margin, hence the offset.
-    const sx = camX + world.cellW;
-    const sy = camY + world.cellH;
-    const dpr = this.dpr;
-    // drawImage clips automatically if the source rectangle goes outside the cache.
-    this.ctx.drawImage(
-      this.groundCache,
-      sx * dpr,
-      sy * dpr,
-      this.width * dpr,
-      this.height * dpr,
-      0,
-      0,
-      this.width,
-      this.height,
-    );
+    const tile = this.groundTile;
+    if (!tile) return;
+    const ctx = this.ctx;
+    const tileW = this.tileCols * world.cellW;
+    const tileH = this.tileRows * world.cellH;
+
+    // Dots only inside the world: clip to its rectangle (in screen coordinates).
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-camX, -camY, world.width, world.height);
+    ctx.clip();
+    const firstX = Math.floor(camX / tileW) * tileW;
+    const firstY = Math.floor(camY / tileH) * tileH;
+    for (let y = firstY; y < camY + this.height; y += tileH) {
+      for (let x = firstX; x < camX + this.width; x += tileW) {
+        // Rounded so neighbouring tiles meet without gaps or blurry seams.
+        ctx.drawImage(tile, Math.round(x - camX), Math.round(y - camY), Math.ceil(tileW), Math.ceil(tileH));
+      }
+    }
+    ctx.restore();
+
+    this.drawBorder(world, camX, camY);
+  }
+
+  /** The ring of `#` around the world, drawing only the cells that are on screen. */
+  private drawBorder(world: World, camX: number, camY: number): void {
+    const ctx = this.ctx;
+    ctx.fillStyle = COLORS.border;
+    const colFrom = Math.max(-1, Math.floor(camX / world.cellW) - 1);
+    const colTo = Math.min(world.cols, Math.ceil((camX + this.width) / world.cellW) + 1);
+    const rowFrom = Math.max(-1, Math.floor(camY / world.cellH) - 1);
+    const rowTo = Math.min(world.rows, Math.ceil((camY + this.height) / world.cellH) + 1);
+
+    const put = (col: number, row: number): void => {
+      ctx.fillText(BORDER_CHAR, col * world.cellW + world.cellW / 2 - camX, row * world.cellH + world.cellH / 2 - camY);
+    };
+    // Top and bottom rows (only if that edge is visible), then left and right columns.
+    if (rowFrom === -1) for (let c = colFrom; c <= colTo; c++) put(c, -1);
+    if (rowTo === world.rows) for (let c = colFrom; c <= colTo; c++) put(c, world.rows);
+    if (colFrom === -1) for (let r = rowFrom; r <= rowTo; r++) put(-1, r);
+    if (colTo === world.cols) for (let r = rowFrom; r <= rowTo; r++) put(world.cols, r);
   }
 
   /** Darken everything drawn so far, e.g. behind a menu. `alpha` is the opacity of the black layer. */
