@@ -2,7 +2,7 @@ import { PROGRESSION } from './config';
 import { Camera } from './engine/camera';
 import { Input } from './engine/input';
 import type { Renderer } from './engine/renderer';
-import type { Enemy } from './entities/enemy';
+import type { Enemy, EnemyEnv } from './entities/enemy';
 import { Player } from './entities/player';
 import { loadBestTime, saveBestTime } from './storage';
 import { Combat } from './systems/combat';
@@ -42,6 +42,7 @@ export class Game {
   private enemies!: Enemy[];
   private spawner!: Spawner;
   private combat!: Combat;
+  private enemyEnv!: EnemyEnv;
   private progression!: Progression;
   private particles!: Particles;
   private pendingLevelUps = 0; // levels gained that still need an upgrade chosen
@@ -64,6 +65,7 @@ export class Game {
     this.enemies = [];
     this.spawner = new Spawner();
     this.combat = new Combat();
+    this.enemyEnv = this.combat.makeEnv(this.world.width, this.world.height);
     this.progression = new Progression();
     this.particles = new Particles();
     this.pendingLevelUps = 0;
@@ -99,7 +101,7 @@ export class Game {
     const view = { x: this.camera.x, y: this.camera.y, w: this.renderer.width, h: this.renderer.height };
     this.spawner.update(dt, view, this.world, this.enemies);
 
-    for (const enemy of this.enemies) enemy.update(dt, this.player.x, this.player.y);
+    for (const enemy of this.enemies) enemy.update(dt, this.player.x, this.player.y, this.enemyEnv);
     separate(this.enemies);
 
     const killed = this.combat.update(dt, this.player, this.enemies);
@@ -159,8 +161,7 @@ export class Game {
         this.menu.open(choices);
         return;
       }
-      // Everything is maxed out: there's nothing to pick, so a level-up just heals a bit instead.
-      this.player.heal(this.player.stats.maxHp * 0.3);
+      // Everything is maxed out: there's nothing left to pick, so the level-up is simply skipped.
     }
   }
 
@@ -177,7 +178,8 @@ export class Game {
     if (this.spawner.alert > 0 && !this.over) {
       // Blinks so it catches the eye without covering the action.
       const on = Math.floor(this.spawner.alert * 4) % 2 === 0;
-      this.renderer.drawGlyph(on ? '!! SWARM !!' : '   SWARM   ', '#ff6b5e', this.renderer.width / 2, this.renderer.height * 0.2);
+      const label = this.spawner.alertLabel;
+      this.renderer.drawGlyph(on ? `!! ${label} !!` : '', '#ff6b5e', this.renderer.width / 2, this.renderer.height * 0.2);
     }
 
     if (this.menu.isOpen) this.menu.draw(this.renderer);

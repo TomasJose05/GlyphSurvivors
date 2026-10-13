@@ -1,5 +1,5 @@
 import { DIFFICULTY, ENEMY_TYPES, SPAWN, type EnemyType } from '../config';
-import { Enemy } from '../entities/enemy';
+import { Enemy, enemyTypeByChar } from '../entities/enemy';
 import type { World } from '../world/world';
 
 /** The part of the world currently visible on screen, in world pixels. */
@@ -10,15 +10,20 @@ export interface View {
   h: number;
 }
 
+const FLOCK_SPACING = 26; // px between the members of a flock
+
 /**
  * Creates enemies just outside the screen. The longer the run lasts, the more of them there are,
- * the tougher they are, and the more types have been unlocked. Once a minute a swarm surrounds you.
+ * the tougher they are, and the more types have been unlocked. Once a minute a swarm surrounds you,
+ * and from the sixth minute a boss walks in every couple of minutes.
  */
 export class Spawner {
   private elapsed = 0; // seconds survived in this run
   private budget = 0; // fractional enemies "owed"; one is spawned every time it reaches 1
   private nextSwarm: number = DIFFICULTY.swarmFirstAt;
-  alert = 0; // seconds left of the swarm warning (the game shows a banner while it's > 0)
+  private nextBoss: number = DIFFICULTY.bossFirstAt;
+  alert = 0; // seconds left of the warning banner (the game shows it while it's > 0)
+  alertLabel = ''; // what the banner says: 'SWARM' or 'BOSS'
 
   update(dt: number, view: View, world: World, enemies: Enemy[]): void {
     this.elapsed += dt;
@@ -30,12 +35,16 @@ export class Spawner {
       this.budget -= 1;
       if (enemies.length >= this.maxEnemies()) continue;
       const pos = this.pickPosition(view, world);
-      if (pos) enemies.push(this.create(pos.x, pos.y));
+      if (pos) this.spawnAt(pos, view, world, enemies);
     }
 
     if (this.elapsed >= this.nextSwarm) {
       this.nextSwarm += DIFFICULTY.swarmEvery;
       this.spawnSwarm(view, world, enemies);
+    }
+    if (this.elapsed >= this.nextBoss) {
+      this.nextBoss += DIFFICULTY.bossEvery;
+      this.spawnBoss(view, world, enemies);
     }
   }
 
@@ -53,16 +62,37 @@ export class Spawner {
     return Math.min(DIFFICULTY.maxEnemiesCap, DIFFICULTY.maxEnemiesStart + DIFFICULTY.maxEnemiesPerMinute * this.minutes);
   }
 
-  private create(x: number, y: number): Enemy {
+  private create(type: EnemyType, x: number, y: number): Enemy {
     const m = this.minutes;
     const hpMult = 1 + DIFFICULTY.hpGrowthPerMinute * m + DIFFICULTY.hpGrowthQuadratic * m * m;
     const damageMult = 1 + DIFFICULTY.damageGrowthPerMinute * m;
-    return new Enemy(this.pickType(), x, y, hpMult, damageMult);
+    return new Enemy(type, x, y, hpMult, damageMult);
+  }
+
+  /** Spawns one enemy of a random unlocked type at `pos`; flock types spawn as a whole flock. */
+  private spawnAt(pos: { x: number; y: number }, view: View, world: World, enemies: Enemy[]): void {
+    const type = this.pickType();
+    const size = type.group ?? 1;
+    // A flock is a row of enemies perpendicular to the direction they'll fly in (toward the screen).
+    const fromX = pos.x - (view.x + view.w / 2);
+    const fromY = pos.y - (view.y + view.h / 2);
+    const len = Math.hypot(fromX, fromY) || 1;
+    const perpX = -fromY / len;
+    const perpY = fromX / len;
+
+    for (let i = 0; i < size; i++) {
+      const offset = (i - (size - 1) / 2) * FLOCK_SPACING;
+      const x = pos.x + perpX * offset;
+      const y = pos.y + perpY * offset;
+      if (x < 0 || x > world.width || y < 0 || y > world.height) continue;
+      enemies.push(this.create(type, x, y));
+    }
   }
 
   /** A ring of enemies around the screen, evenly spaced, so there's no safe direction to run. */
   private spawnSwarm(view: View, world: World, enemies: Enemy[]): void {
     this.alert = DIFFICULTY.swarmAlertTime;
+    this.alertLabel = 'SWARM';
     const count = Math.round(DIFFICULTY.swarmBaseCount + DIFFICULTY.swarmExtraPerMinute * this.minutes);
     const centerX = view.x + view.w / 2;
     const centerY = view.y + view.h / 2;
@@ -78,13 +108,22 @@ export class Spawner {
       // They must not be clamped back inside: that would drop enemies on top of a player standing
       // next to the wall.
       if (x < 0 || x > world.width || y < 0 || y > world.height) continue;
-      enemies.push(this.create(x, y));
+      // Flock types fly straight and don't belong in a ring that's meant to close in: skip them.
+      enemies.push(this.create(this.pickType((t) => t.behavior !== 'swoop'), x, y));
     }
   }
 
+  private spawnBoss(view: View, world: World, enemies: Enemy[]): void {
+    const pos = this.pickPosition(view, world);
+    if (!pos) return;
+    this.alert = DIFFICULTY.swarmAlertTime;
+    this.alertLabel = 'BOSS';
+    enemies.push(this.create(enemyTypeByChar('M'), pos.x, pos.y));
+  }
+
   /** Weighted random pick among the enemy types already unlocked at this point of the run. */
-  private pickType(): EnemyType {
-    const unlocked = ENEMY_TYPES.filter((t) => t.minTime <= this.elapsed);
+  private pickType(allow: (t: EnemyType) => boolean = () => true): EnemyType {
+    const unlocked = ENEMY_TYPES.filter((t) => t.weight > 0 && t.minTime <= this.elapsed && allow(t));
     const total = unlocked.reduce((sum, t) => sum + t.weight, 0);
     let roll = Math.random() * total;
     for (const type of unlocked) {

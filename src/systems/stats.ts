@@ -11,7 +11,7 @@ export interface Stats {
   fireInterval: number; // seconds between volleys
   projectiles: number; // projectiles per volley
   range: number; // px
-  regen: number; // HP recovered per second
+  lifeOnKill: number; // fraction of max HP recovered for every enemy killed (0.01 = 1%)
   levels: Record<string, number>; // how many times each upgrade (by id) has been taken
 }
 
@@ -23,7 +23,7 @@ export function createStats(): Stats {
     fireInterval: WEAPON.interval,
     projectiles: 1,
     range: WEAPON.range,
-    regen: 0,
+    lifeOnKill: 0,
     levels: {},
   };
 }

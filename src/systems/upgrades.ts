@@ -1,4 +1,4 @@
-import { PROGRESSION } from '../config';
+import { LEECH, PROGRESSION } from '../config';
 import type { Player } from '../entities/player';
 import type { Stats } from './stats';
 
@@ -50,20 +50,19 @@ export const UPGRADES: readonly Upgrade[] = [
   {
     id: 'vitality',
     name: 'Vitality',
-    desc: '+3 max HP, heal 3',
+    desc: '+3 max HP',
     maxLevel: 8,
-    apply: (s, player) => {
+    apply: (s) => {
       s.maxHp += 3;
-      player.heal(3);
     },
   },
   {
-    id: 'regen',
-    name: 'Recovery',
-    desc: '+0.3 HP per second',
+    id: 'leech',
+    name: 'Bloodthirst',
+    desc: '+0.3% max HP per kill',
     maxLevel: 5,
     apply: (s) => {
-      s.regen += 0.3;
+      s.lifeOnKill += LEECH.perLevel;
     },
   },
   {

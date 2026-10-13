@@ -142,11 +142,16 @@ export class Renderer {
     this.ctx.textBaseline = 'middle';
   }
 
-  /** Draw one character centered on a screen position (in CSS pixels). `alpha` 0..1 makes it see-through. */
-  drawGlyph(char: string, color: string, x: number, y: number, alpha = 1): void {
+  /**
+   * Draw one character centered on a screen position (in CSS pixels). `alpha` 0..1 makes it
+   * see-through; `size` scales the character (2 = twice as big), used for bosses.
+   */
+  drawGlyph(char: string, color: string, x: number, y: number, alpha = 1, size = 1): void {
     this.ctx.fillStyle = color;
     if (alpha < 1) this.ctx.globalAlpha = alpha;
+    if (size !== 1) this.ctx.font = `${FONT.size * size}px ${FONT.family}`;
     this.ctx.fillText(char, x, y);
+    if (size !== 1) this.ctx.font = `${FONT.size}px ${FONT.family}`;
     this.ctx.globalAlpha = 1;
   }
 }

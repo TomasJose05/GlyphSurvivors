@@ -32,10 +32,27 @@ The output goes to `dist/` and can be deployed as a static site (e.g. Netlify).
 
 Modeled on Vampire Survivors: a gentle first couple of minutes, then a steady (convex) ramp.
 
-- Enemies spawn faster over time (`startRate` + linear + quadratic term), have more HP and hit harder.
-- New enemy types unlock in phases: `z` at 0:00, `s` at 1:00, `W` at 2:00, `v` (faster than you) at 3:00, `M` mini-boss at 6:00.
-- Every minute (from 1:30) a **swarm** ring closes in from all sides.
+- Enemies spawn faster over time, have more HP and hit harder.
+- Every minute (from 1:30) a **swarm** ring closes in from all sides, and from 6:00 a **boss** arrives every 2 minutes.
 - Every upgrade has a max level, so power is capped and late waves eventually overwhelm you.
+- **Healing is scarce on purpose:** the only way to recover HP is the *Bloodthirst* upgrade (a small % of max HP per kill).
 
-All the numbers live in `DIFFICULTY`, `ENEMY_TYPES`, `PROGRESSION` and the upgrade list in `src/config.ts` / `src/systems/upgrades.ts`.
-They were tuned with a headless simulator and a simple kiting bot (median survival ~10 min, almost nobody dies in the first 3 minutes).
+### Enemies
+
+Each type has its own behavior (see `Behavior` in `src/config.ts`), unlocked in phases:
+
+| Char | Behavior | From |
+|------|----------|------|
+| `z` | walks straight at you | 0:00 |
+| `w` | weaves left and right on a sine wave | 0:45 |
+| `s` | fast chaser | 1:00 |
+| `v` | flock of bats that fly across the screen in a straight line | 1:30 |
+| `W` | slow tank | 2:00 |
+| `a` | archer: keeps its distance and shoots | 2:30 |
+| `c` | charger: stops, flashes a warning, then dashes at you | 3:30 |
+| `O` | splits into three small `o` when killed | 4:30 |
+| `M` | boss: slow, huge, fires rings of bullets | 6:00, then every 2:00 |
+
+All the numbers live in `DIFFICULTY`, `ENEMY_TYPES`, `PLAYER`, `LEECH`, `PROGRESSION` in `src/config.ts`
+and the upgrade list in `src/systems/upgrades.ts`. They were tuned with a headless simulator and a simple
+kiting bot (median survival about 11 minutes; a human will usually do worse than the bot).

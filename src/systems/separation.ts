@@ -12,6 +12,8 @@ export function separate(enemies: Enemy[]): void {
     for (let j = i + 1; j < enemies.length; j++) {
       const a = enemies[i];
       const b = enemies[j];
+      // Flying enemies (bats) pass through everything, so a flock keeps its shape.
+      if (a.type.ghost || b.type.ghost) continue;
       let dx = b.x - a.x;
       let dy = b.y - a.y;
       if (Math.abs(dx) > minDist || Math.abs(dy) > minDist) continue; // cheap early-out
