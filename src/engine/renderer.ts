@@ -111,6 +111,12 @@ export class Renderer {
     );
   }
 
+  /** Darken everything drawn so far, e.g. behind a menu. `alpha` is the opacity of the black layer. */
+  dim(alpha: number): void {
+    this.ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+    this.ctx.fillRect(0, 0, this.width, this.height);
+  }
+
   /** Draw a line of text with its top-left corner at a screen position (in CSS pixels). */
   drawText(text: string, color: string, x: number, y: number): void {
     this.ctx.textAlign = 'left';

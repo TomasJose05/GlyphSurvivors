@@ -22,6 +22,7 @@ export const WORLD = {
   rows: 90,
 } as const;
 
+// speed and maxHp are the *starting* values; upgrades change the live copy in `Stats` (systems/stats.ts).
 export const PLAYER = {
   char: '@',
   speed: 180, // px per second
@@ -31,6 +32,7 @@ export const PLAYER = {
 } as const;
 
 // Automatic weapon: fires at the nearest enemy in range, no aiming needed.
+// interval, damage and range are starting values (see the note on PLAYER); the rest never change.
 export const WEAPON = {
   interval: 0.6, // seconds between shots
   damage: 1,
@@ -47,6 +49,7 @@ export interface EnemyType {
   speed: number; // px per second
   hp: number;
   damage: number; // damage dealt to the player on contact
+  xp: number; // experience granted when killed
   minTime: number; // seconds into the run before this type can appear
   weight: number; // relative chance of being picked among the types that are unlocked
 }
@@ -55,10 +58,16 @@ export const ENEMY_RADIUS = 7; // px, used for collisions
 
 // Enemies must be slower than the player (180) so the player can always kite them.
 export const ENEMY_TYPES: readonly EnemyType[] = [
-  { char: 'z', color: '#9bbf6a', speed: 55, hp: 2, damage: 1, minTime: 0, weight: 6 },
-  { char: 's', color: '#d6a45a', speed: 95, hp: 2, damage: 1, minTime: 20, weight: 3 },
-  { char: 'W', color: '#c46a6a', speed: 38, hp: 6, damage: 2, minTime: 45, weight: 1 },
+  { char: 'z', color: '#9bbf6a', speed: 55, hp: 2, damage: 1, xp: 1, minTime: 0, weight: 6 },
+  { char: 's', color: '#d6a45a', speed: 95, hp: 2, damage: 1, xp: 2, minTime: 20, weight: 3 },
+  { char: 'W', color: '#c46a6a', speed: 38, hp: 6, damage: 2, xp: 5, minTime: 45, weight: 1 },
 ];
+
+export const PROGRESSION = {
+  firstLevelXp: 5, // XP needed to go from level 1 to 2
+  extraXpPerLevel: 4, // each following level needs this much more than the previous one
+  choicesPerLevelUp: 3,
+} as const;
 
 export const HUD = {
   barWidth: 20, // characters
