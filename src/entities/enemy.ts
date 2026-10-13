@@ -5,12 +5,18 @@ export class Enemy {
   // Position in world pixels (the center of the character).
   x: number;
   y: number;
+  hp: number;
   readonly type: EnemyType;
 
   constructor(type: EnemyType, x: number, y: number) {
     this.type = type;
     this.x = x;
     this.y = y;
+    this.hp = type.hp;
+  }
+
+  get dead(): boolean {
+    return this.hp <= 0;
   }
 
   /** Walk in a straight line toward the target. `dt` is in seconds. */

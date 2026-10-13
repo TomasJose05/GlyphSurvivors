@@ -7,14 +7,29 @@ export class Player {
   // Position in world pixels (the center of the character). Movement is free, not tied to the grid.
   x: number;
   y: number;
+  hp: number = PLAYER.maxHp; // annotated: `as const` would otherwise narrow this to the literal 10
+  private invulnerable = 0; // seconds of immunity left
 
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
   }
 
+  get dead(): boolean {
+    return this.hp <= 0;
+  }
+
+  /** Deals damage unless the player is in the immunity window that follows every hit. */
+  takeDamage(amount: number): void {
+    if (this.invulnerable > 0 || this.dead) return;
+    this.hp = Math.max(0, this.hp - amount);
+    this.invulnerable = PLAYER.invulnerableTime;
+  }
+
   /** `dt` is the time since the last frame in seconds, so speed is the same at any frame rate. */
   update(dt: number, input: Input, world: World): void {
+    this.invulnerable = Math.max(0, this.invulnerable - dt);
+
     const dir = input.axis();
     this.x += dir.x * PLAYER.speed * dt;
     this.y += dir.y * PLAYER.speed * dt;
@@ -27,6 +42,8 @@ export class Player {
   }
 
   draw(renderer: Renderer, camX: number, camY: number): void {
+    // While immune, blink (hidden every other 0.1s) so the hit is visible and the immunity readable.
+    if (this.invulnerable > 0 && Math.floor(this.invulnerable * 10) % 2 === 0) return;
     renderer.drawGlyph(PLAYER.char, COLORS.player, this.x - camX, this.y - camY);
   }
 }

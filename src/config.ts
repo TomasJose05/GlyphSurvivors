@@ -25,22 +25,45 @@ export const WORLD = {
 export const PLAYER = {
   char: '@',
   speed: 180, // px per second
+  maxHp: 10,
+  radius: 7, // px, used for collisions
+  invulnerableTime: 0.7, // seconds of immunity after being hit
+} as const;
+
+// Automatic weapon: fires at the nearest enemy in range, no aiming needed.
+export const WEAPON = {
+  interval: 0.6, // seconds between shots
+  damage: 1,
+  range: 380, // px; enemies farther than this are ignored
+  projectileSpeed: 420, // px per second
+  projectileRadius: 6,
+  projectileChar: '*',
+  projectileColor: '#ffe27a',
 } as const;
 
 export interface EnemyType {
   char: string;
   color: string;
   speed: number; // px per second
+  hp: number;
+  damage: number; // damage dealt to the player on contact
   minTime: number; // seconds into the run before this type can appear
   weight: number; // relative chance of being picked among the types that are unlocked
 }
 
+export const ENEMY_RADIUS = 7; // px, used for collisions
+
 // Enemies must be slower than the player (180) so the player can always kite them.
 export const ENEMY_TYPES: readonly EnemyType[] = [
-  { char: 'z', color: '#9bbf6a', speed: 55, minTime: 0, weight: 6 },
-  { char: 's', color: '#d6a45a', speed: 95, minTime: 20, weight: 3 },
-  { char: 'W', color: '#c46a6a', speed: 38, minTime: 45, weight: 1 },
+  { char: 'z', color: '#9bbf6a', speed: 55, hp: 2, damage: 1, minTime: 0, weight: 6 },
+  { char: 's', color: '#d6a45a', speed: 95, hp: 2, damage: 1, minTime: 20, weight: 3 },
+  { char: 'W', color: '#c46a6a', speed: 38, hp: 6, damage: 2, minTime: 45, weight: 1 },
 ];
+
+export const HUD = {
+  barWidth: 20, // characters
+  margin: 16, // px from the screen edge
+} as const;
 
 export const SPAWN = {
   startInterval: 1.2, // seconds between spawns at the start of a run

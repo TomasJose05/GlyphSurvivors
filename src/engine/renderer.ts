@@ -111,6 +111,17 @@ export class Renderer {
     );
   }
 
+  /** Draw a line of text with its top-left corner at a screen position (in CSS pixels). */
+  drawText(text: string, color: string, x: number, y: number): void {
+    this.ctx.textAlign = 'left';
+    this.ctx.textBaseline = 'top';
+    this.ctx.fillStyle = color;
+    this.ctx.fillText(text, x, y);
+    // Back to the defaults that drawGlyph relies on.
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+  }
+
   /** Draw one character centered on a screen position (in CSS pixels). */
   drawGlyph(char: string, color: string, x: number, y: number): void {
     this.ctx.fillStyle = color;
