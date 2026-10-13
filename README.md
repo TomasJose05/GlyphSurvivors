@@ -26,4 +26,4 @@ The output goes to `dist/` and can be deployed as a static site (e.g. Netlify).
 - [x] 4. Auto-attack on the nearest enemy and a health system
 - [x] 5. Experience, levels and the upgrade menu
 - [x] 6. Visual effects: colors, death particles, ASCII trees
-- [ ] 7. Game over screen, restart and best time in localStorage
+- [x] 7. Game over screen, restart and best time in localStorage

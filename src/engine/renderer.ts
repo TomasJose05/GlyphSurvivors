@@ -128,9 +128,12 @@ export class Renderer {
     this.ctx.fillRect(0, 0, this.width, this.height);
   }
 
-  /** Draw a line of text with its top-left corner at a screen position (in CSS pixels). */
-  drawText(text: string, color: string, x: number, y: number): void {
-    this.ctx.textAlign = 'left';
+  /**
+   * Draw a line of text with its top at a screen position (in CSS pixels). `x` is the left edge,
+   * or the right edge when `align` is 'right'.
+   */
+  drawText(text: string, color: string, x: number, y: number, align: 'left' | 'right' = 'left'): void {
+    this.ctx.textAlign = align;
     this.ctx.textBaseline = 'top';
     this.ctx.fillStyle = color;
     this.ctx.fillText(text, x, y);
