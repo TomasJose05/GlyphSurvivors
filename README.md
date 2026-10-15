@@ -28,6 +28,26 @@ The output goes to `dist/` and can be deployed as a static site (e.g. Netlify).
 - [x] 6. Visual effects: colors, death particles and hit flashes (the ASCII trees were removed afterwards)
 - [x] 7. Game over screen, restart and best time in localStorage
 
+## Characters
+
+The title screen lets you pick who to play (arrows / WASD or click, then ENTER or click again). Each character starts with a
+different weapon and has a small bonus that comes with a drawback. Every character keeps its own best time, and the last one
+you picked is remembered.
+
+| Glyph | Character | Starts with | Perk |
+|-------|-----------|-------------|------|
+| `@` | Wanderer | Magic Bolt | balanced |
+| `&` | Rogue | Throwing Daggers | +12% speed, -4 HP |
+| `K` | Knight | Lash | +8 HP, -8% speed |
+| `P` | Pyromancer | Aura of Flame | +15% area |
+| `D` | Blade Dancer | Orbiting Blades | -10% cooldown |
+| `H` | Hunter | Boomerang | +10% damage, +5% speed |
+| `S` | Stormcaller | Lightning | +15% damage, -2 HP |
+| `A` | Alchemist | Acid Pools | +0.4% max HP per kill |
+
+On the game over screen, ENTER plays again with the same character and M goes back to the menu.
+To add a character, add an entry to `CHARACTERS` in `src/characters.ts`.
+
 ## Weapons
 
 You start with the Magic Bolt. Every level-up offers three options: a **new weapon**, the **next level of one you carry**

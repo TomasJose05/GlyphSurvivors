@@ -1,4 +1,4 @@
-import { COLORS, PLAYER } from '../config';
+import { PLAYER } from '../config';
 import type { Input } from '../engine/input';
 import type { Renderer } from '../engine/renderer';
 import type { Stats } from '../systems/stats';
@@ -10,15 +10,19 @@ export class Player {
   y: number;
   hp: number;
   readonly stats: Stats;
+  readonly glyph: string; // how the player is drawn (each character has its own)
+  readonly color: string;
   // Unit vector of the last direction the player moved in. Weapons that aim "forward" use it.
   facingX = 1;
   facingY = 0;
   private invulnerable = 0; // seconds of immunity left
 
-  constructor(x: number, y: number, stats: Stats) {
+  constructor(x: number, y: number, stats: Stats, glyph: string, color: string) {
     this.x = x;
     this.y = y;
     this.stats = stats;
+    this.glyph = glyph;
+    this.color = color;
     this.hp = stats.maxHp;
   }
 
@@ -60,6 +64,6 @@ export class Player {
   draw(renderer: Renderer, camX: number, camY: number): void {
     // While immune, blink (hidden every other 0.1s) so the hit is visible and the immunity readable.
     if (this.invulnerable > 0 && Math.floor(this.invulnerable * 10) % 2 === 0) return;
-    renderer.drawGlyph(PLAYER.char, COLORS.player, this.x - camX, this.y - camY);
+    renderer.drawGlyph(this.glyph, this.color, this.x - camX, this.y - camY);
   }
 }

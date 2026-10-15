@@ -47,9 +47,10 @@ export class Loadout {
   }
 }
 
-/** A loadout holding just the starting weapon. */
-export function createLoadout(): Loadout {
+/** A loadout holding just one starting weapon (the Magic Bolt unless told otherwise). */
+export function createLoadout(weaponId = 'bolt'): Loadout {
   const loadout = new Loadout();
-  loadout.add(new Bolt());
+  const make = WEAPON_FACTORIES.find((factory) => factory().id === weaponId);
+  loadout.add(make ? make() : new Bolt());
   return loadout;
 }

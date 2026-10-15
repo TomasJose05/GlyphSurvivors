@@ -34,7 +34,7 @@ export function drawGameOver(renderer: Renderer, run: RunSummary, canRestart: bo
     [row(`  Level       ${run.level}`), '#7fb7ff'],
     [row(`  Kills       ${run.kills}`), '#7fb7ff'],
     [row(''), '#7f93a3'],
-    [row(center(canRestart ? 'ENTER / click to restart' : '')), '#8a97a3'],
+    [row(center(canRestart ? 'ENTER: play again   M: menu' : '')), '#8a97a3'],
     [edge, '#7f93a3'],
   ];
 

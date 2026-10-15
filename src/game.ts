@@ -1,10 +1,11 @@
+import { CHARACTERS, characterById, type Character } from './characters';
 import { PROGRESSION } from './config';
 import { Camera } from './engine/camera';
 import { Input } from './engine/input';
 import type { Renderer } from './engine/renderer';
 import type { Enemy, EnemyEnv } from './entities/enemy';
 import { Player } from './entities/player';
-import { loadBestTime, saveBestTime } from './storage';
+import { loadBestTime, loadLastCharacter, saveBestTime, saveLastCharacter } from './storage';
 import { Combat } from './systems/combat';
 import { Particles } from './systems/particles';
 import { Progression } from './systems/progression';
@@ -14,30 +15,36 @@ import { createStats } from './systems/stats';
 import { pickOffers } from './systems/upgrades';
 import { drawGameOver, type RunSummary } from './ui/gameOver';
 import { drawHud } from './ui/hud';
+import { StartMenu } from './ui/startMenu';
 import { UpgradeMenu } from './ui/upgradeMenu';
 import { createLoadout, type Loadout } from './weapons/loadout';
 import { World } from './world/world';
 
-// Keys that restart the game from the game over screen.
+// Keys on the game over screen: play again with the same character, or go back to the menu.
 const RESTART_KEYS = ['Enter', 'NumpadEnter', 'Space', 'KeyR'];
+const MENU_KEYS = ['KeyM', 'Escape'];
 // Input is ignored for this long after dying, so a key you were mashing in the fight
 // doesn't skip the game over screen before you can read it.
 const RESTART_DELAY = 0.8; // seconds
 
 /**
  * Owns everything that exists in the game and advances it one frame at a time.
- * Some of it lives as long as the page (renderer, input, world, camera); the rest belongs
- * to a single run and is recreated by `reset()`.
+ * Some of it lives as long as the page (renderer, input, world, camera, menus); the rest belongs
+ * to a single run and is recreated by `startRun()`.
  */
 export class Game {
   // --- Lives as long as the page ---
   private readonly renderer: Renderer;
   private readonly input = new Input();
   private readonly camera = new Camera();
-  private readonly menu = new UpgradeMenu();
+  private readonly menu = new UpgradeMenu(); // the level-up screen
+  private readonly startMenu = new StartMenu(); // the title / character select screen
   private readonly world: World;
+  private mode: 'menu' | 'playing' = 'menu';
+  private bests: Record<string, number> = {}; // best time per character id, for the menu
 
-  // --- Belongs to the current run; (re)created in reset(), hence the `!` ---
+  // --- Belongs to the current run; (re)created in startRun(), hence the `!` ---
+  private character!: Character;
   private player!: Player;
   private enemies!: Enemy[];
   private spawner!: Spawner;
@@ -49,38 +56,60 @@ export class Game {
   private pendingLevelUps = 0; // levels gained that still need an upgrade chosen
   private elapsed = 0; // seconds survived in this run
   private kills = 0;
-  private best = 0; // best time in seconds, loaded from localStorage
+  private best = 0; // best time of the current character, in seconds
   private over: { summary: RunSummary; restartIn: number } | null = null; // set once the player dies
 
   constructor(renderer: Renderer) {
     this.renderer = renderer;
     this.world = new World(renderer.cellW, renderer.cellH);
     this.renderer.buildGroundTile(this.world);
-    this.reset();
+    this.refreshBests();
+    this.startMenu.select(characterById(loadLastCharacter()).id);
   }
 
-  /** Starts a fresh run. */
-  private reset(): void {
+  private refreshBests(): void {
+    this.bests = Object.fromEntries(CHARACTERS.map((c) => [c.id, loadBestTime(c.id)]));
+  }
+
+  /** Starts a fresh run as `character`. */
+  private startRun(character: Character): void {
+    this.mode = 'playing';
+    this.character = character;
+    // The character's bonus is applied on top of the default stats.
+    const stats = createStats();
+    character.apply(stats);
     // Start in the middle of the world.
-    this.player = new Player(this.world.width / 2, this.world.height / 2, createStats());
+    this.player = new Player(this.world.width / 2, this.world.height / 2, stats, character.glyph, character.color);
     this.enemies = [];
     this.spawner = new Spawner();
     this.combat = new Combat();
-    this.loadout = createLoadout();
+    this.loadout = createLoadout(character.weaponId);
     this.enemyEnv = this.combat.makeEnv(this.world.width, this.world.height);
     this.progression = new Progression();
     this.particles = new Particles();
     this.pendingLevelUps = 0;
     this.elapsed = 0;
     this.kills = 0;
-    this.best = loadBestTime();
+    this.best = loadBestTime(character.id);
     this.over = null;
+    this.menu.open([]); // make sure no level-up screen is left over from a previous run
+    // Frame the player right away, so the first frame doesn't use the menu's camera.
+    this.camera.follow(this.player.x, this.player.y, this.renderer.width, this.renderer.height, this.world);
     // Discard anything pressed or clicked before the run started.
     this.input.takePressed();
     this.input.takeClicks();
   }
 
   update(dt: number): void {
+    if (this.mode === 'menu') {
+      const chosen = this.startMenu.handleInput(this.input, this.renderer);
+      if (chosen) {
+        saveLastCharacter(chosen.id);
+        this.startRun(chosen);
+      }
+      return;
+    }
+
     if (this.over) {
       this.updateGameOver(dt);
       return;
@@ -133,8 +162,14 @@ export class Game {
 
     const pressed = this.input.takePressed();
     const clicked = this.input.takeClicks().length > 0;
-    if (this.over.restartIn === 0 && (clicked || pressed.some((key) => RESTART_KEYS.includes(key)))) {
-      this.reset();
+    if (this.over.restartIn > 0) return;
+
+    if (pressed.some((key) => MENU_KEYS.includes(key))) {
+      this.mode = 'menu';
+      this.over = null;
+      this.refreshBests();
+    } else if (clicked || pressed.some((key) => RESTART_KEYS.includes(key))) {
+      this.startRun(this.character);
     }
   }
 
@@ -143,7 +178,7 @@ export class Game {
     const newRecord = this.elapsed > this.best;
     if (newRecord) {
       this.best = this.elapsed;
-      saveBestTime(this.best);
+      saveBestTime(this.character.id, this.best);
     }
     this.over = {
       summary: {
@@ -170,8 +205,18 @@ export class Game {
   }
 
   render(): void {
-    const { x, y } = this.camera;
     this.renderer.clear();
+
+    if (this.mode === 'menu') {
+      // Behind the menu: the middle of the arena, so the title screen already looks like the game.
+      const x = this.world.width / 2 - this.renderer.width / 2;
+      const y = this.world.height / 2 - this.renderer.height / 2;
+      this.renderer.drawGround(this.world, x, y);
+      this.startMenu.draw(this.renderer, this.bests);
+      return;
+    }
+
+    const { x, y } = this.camera;
     this.renderer.drawGround(this.world, x, y);
     for (const enemy of this.enemies) enemy.draw(this.renderer, x, y);
     this.particles.draw(this.renderer, x, y);

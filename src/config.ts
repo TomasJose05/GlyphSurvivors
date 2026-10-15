@@ -4,7 +4,6 @@ export const COLORS = {
   background: '#0b0d10',
   gridDot: '#2c3a45',
   border: '#4a5d6b',
-  player: '#e8f0ff',
 } as const;
 
 export const FONT = {
@@ -42,7 +41,6 @@ export const ENEMY_FLASH = {
 
 // speed and maxHp are the *starting* values; passives change the live copy in `Stats` (systems/stats.ts).
 export const PLAYER = {
-  char: '@',
   speed: 180, // px per second
   maxHp: 22,
   radius: 7, // px, used for collisions
